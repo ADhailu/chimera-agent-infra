@@ -1,4 +1,4 @@
-Research Summary – Project Chimera (Refined)
+Research Summary – Project Chimera
 
 1. Philosophical Shift: From “Prompts” to “Infrastructure”
    Research Insight
