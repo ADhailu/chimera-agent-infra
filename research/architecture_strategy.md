@@ -1,69 +1,143 @@
 Architecture Strategy: Project Chimera
+
 Author: Lead Architect / FDE Trainee
 Status: Draft / Pending Ratification
 Context: Agentic Infrastructure for Autonomous Influencers
 
-1.  Executive Summary
-    This document outlines the architectural blueprint for Project Chimera. Moving away from monolithic AI scripts, we are implementing a Fractal Orchestration model designed for high-throughput, safety-first content generation and economic agency. The core objective is a system that scales to thousands of agents with a "Management by Exception" governance model.
-2.  Agent Pattern: Hierarchical Swarm (Planner-Worker-Judge)
-    I have selected the Hierarchical Swarm pattern over a Sequential Chain.
-    Justification:
-    Resilience: Sequential chains are brittle; if one step fails, the entire pipeline crashes. In a Swarm, the Planner can detect a Worker failure and dynamically re-route the task.
-    Parallelism: A Swarm allows multiple Workers to operate simultaneously (e.g., generating 10 variations of a caption at once), which is essential for high-velocity influencers.
-    Governance: The Judge acts as a dedicated gatekeeper, ensuring that the "vibe" and "specs" are met before any state change occurs.
-    Component Roles:
-    The Planner (Strategist): Consumes goals from the specs/ folder and decomposes them into a Directed Acyclic Graph (DAG) of tasks.
-    The Worker (Executor): Stateless agents that pull tasks from the queue, utilize MCP Tools, and return raw artifacts.
-    The Judge (Governor): Validates output against the SOUL.md persona and ethical guardrails.
-3.  Human-in-the-Loop (HITL) Strategy: Management by Exception
-    To allow a single human to manage a massive fleet, we will not approve every post. Instead, we use a Confidence-Based Safety Layer.
-    The Approval Logic:
-    Tier 1: High Confidence (>0.90): Auto-Approved. The Judge commits the post directly to the social platform via MCP.
-    Tier 2: Medium Confidence (0.70 - 0.90): The task is paused and pushed to the Orchestrator Dashboard for human review.
-    Tier 3: Low Confidence (<0.70): Automatic Rejection. The Planner is notified to refine the prompt or strategy and try again.
-    The "Red Line" Filter: Any content involving "Sensitive Topics" (Politics, Finance, Health) triggers a mandatory HITL flag, regardless of confidence score.
-4.  Data Persistence Strategy: Hybrid Database Model
-    For Project Chimera, we require a balance between structured transactional integrity and high-velocity metadata.
-    4.1 SQL (PostgreSQL) - The "Source of Truth"
-    Use Case: Storing agent configurations, financial transaction logs (CDP), campaign goals, and user metadata.
-    Why: We need ACID compliance for financial actions. If an agent spends USDC, we cannot afford data inconsistency.
-    4.2 Vector NoSQL (Weaviate) - The "Semantic Memory"
-    Use Case: Storing high-velocity video metadata, past interactions, and "biographical" memories.
-    Why: To maintain persona consistency, the agent must perform a semantic search of its past "life" before generating new content. SQL is inefficient for this type of "vibe-based" retrieval.
-5.  System Flow (Mermaid.js Diagram)
-    code
-    Mermaid
+1. Executive Summary
+
+This document outlines the architectural blueprint for Project Chimera.
+Moving away from monolithic AI scripts, the system adopts a Fractal Orchestration model designed for high-throughput, safety-first content generation and controlled economic agency. The primary objective is to enable horizontal scalability to thousands of agents while maintaining governance through a Management-by-Exception model rather than constant manual supervision.
+
+2. Agent Pattern: Hierarchical Swarm (Planner–Worker–Judge)
+
+The Hierarchical Swarm pattern is selected over a Sequential Chain.
+
+Justification
+
+Resilience:
+Sequential chains are brittle — a single failure can halt the pipeline.
+In a swarm, the Planner can detect Worker failure and dynamically re-route or regenerate tasks.
+
+Parallelism:
+Multiple Workers can operate simultaneously (e.g., generating caption variations or media assets), which is essential for high-velocity influencer operations.
+
+Governance:
+The Judge functions as a dedicated gatekeeper ensuring alignment with specifications, persona, and safety constraints before any state change is committed.
+
+Component Roles
+
+Planner (Strategist):
+Consumes goals from the specs/ directory and decomposes them into a Directed Acyclic Graph (DAG) of executable tasks.
+
+Worker (Executor):
+Stateless agents that pull tasks from queues, utilize MCP tools, and return raw artifacts. Statelessness ensures failure isolation and horizontal scalability.
+
+Judge (Governor):
+Validates outputs against SOUL.md, ethical guardrails, and contextual integrity rules before approval or escalation.
+
+3. Human-in-the-Loop (HITL) Strategy: Management by Exception
+
+To allow a small human team to supervise a large agent fleet, the system avoids universal approvals and instead uses a Confidence-Based Safety Layer.
+
+Approval Logic
+
+Tier 1 – High Confidence (>0.90):
+Auto-approved. The Judge commits actions directly via MCP.
+
+Tier 2 – Medium Confidence (0.70–0.90):
+Paused and surfaced to the Orchestrator Dashboard for human review.
+
+Tier 3 – Low Confidence (<0.70):
+Automatically rejected. The Planner is notified to refine strategy or regenerate artifacts.
+
+Red-Line Filter:
+Any content touching sensitive domains (politics, finance, health, legal advice) triggers mandatory HITL regardless of confidence score.
+
+4. Data Persistence Strategy: Hybrid Database Model
+
+Project Chimera requires both transactional integrity and semantic memory retrieval.
+
+4.1 SQL (PostgreSQL) — Structured Source of Truth
+
+Use Cases:
+Agent configurations, financial transaction logs, campaign definitions, and user metadata.
+
+Rationale:
+ACID compliance is mandatory for financial and identity-critical actions where inconsistency is unacceptable.
+
+4.2 Vector NoSQL (Weaviate) — Semantic Memory Layer
+
+Use Cases:
+Historical interactions, content embeddings, and long-term persona memories.
+
+Rationale:
+Maintaining character and narrative consistency requires semantic similarity search, which relational databases are inefficient at handling.
+
+5. Failure & Recovery Strategy
+
+To maintain operational continuity at scale, the architecture incorporates explicit recovery mechanisms:
+
+Worker Retry Policy: Limited automatic retries with exponential backoff.
+
+Fallback Tool Providers: Secondary MCP tool endpoints when primary services fail.
+
+Planner Re-Queue Logic: Failed tasks are reassessed and re-planned rather than abandoned.
+
+Judge Safeguard: Prevents corrupted or incomplete outputs from committing to external platforms.
+
+Circuit Breakers: Temporary suspension of unstable external APIs to prevent cascading failures.
+
+This ensures that localized disruptions do not propagate into systemic outages.
+
+6. Security & Identity Layer
+
+All inter-agent and agent-to-tool communication will require:
+
+Signed requests or token-based authentication
+
+Role-based access controls
+
+Wallet and identity verification for financial operations
+
+This layer mitigates impersonation, unauthorized spending, and cross-agent interference within distributed environments.
+
+7.  System Flow (Mermaid Diagram)
     graph TD
-    %% Goal Input
     A[Human Super-Orchestrator] -->|Defines Goal| B(Planner Agent)
-    %% Planning Phase
-    B -->|Generates DAG| C{Task Queue}
 
-        %% Execution Phase
-        C -->|Task 1: Research| D[Worker: Researcher]
-        C -->|Task 2: Design| E[Worker: Designer]
-        C -->|Task 3: Finance| F[Worker: CFO]
+        B -->|Generates DAG| C{Task Queue}
 
-        %% Quality Control
+        C -->|Task: Research| D[Worker: Researcher]
+        C -->|Task: Design| E[Worker: Designer]
+        C -->|Task: Finance| F[Worker: CFO]
+
         D & E & F --> G(The Judge)
 
-        %% Governance Logic
         G -->|Confidence < 0.7| H[Auto-Reject / Re-Plan]
-        G -->|Confidence 0.7 - 0.9| I[HITL: Human Review Interface]
-        G -->|Confidence > 0.9| J[Auto-Approve]
+        G -->|0.7–0.9| I[HITL Review]
+        G -->|> 0.9| J[Auto-Approve]
 
-        %% Action Phase
         I -->|Approved| J
-        J -->|MCP Call| K[Social Media / Blockchain]
+        J -->|MCP Call| K[Social / Blockchain]
 
-        %% Memory Feedback
-        K -->|Log Outcome| L[(Weaviate: Long-Term Memory)]
-        K -->|Log Transaction| M[(PostgreSQL: Financial Ledger)]
+        K -->|Log Outcome| L[(Weaviate)]
+        K -->|Log Transaction| M[(PostgreSQL)]
 
-6.  Future-Proofing & Extensibility
-    MCP Abstraction: By routing all actions through MCP, we can swap "Twitter" for "MoltBook" or "Instagram" without changing a single line of the agent’s core reasoning logic.
-    Agentic Commerce: Every agent is initialized with a Coinbase AgentKit wallet. This allows the architecture to evolve into a self-sustaining economy where agents pay for their own database storage and API usage.
-7.  Next Steps for Implementation
-    Initialize Repo: Set up pyproject.toml using uv.
-    Rule Integration: Create .cursor/rules to enforce the "Prime Directive" (Check Specs First).
-    Define Skills: Create the skills/ directory structure for fetch_trends, generate_image, and process_payment.
+8.  Future-Proofing & Extensibility
+
+MCP Abstraction:
+All external interactions are routed through MCP, allowing platform substitution (e.g., Twitter → MoltBook → Instagram) without altering core reasoning logic.
+
+Agentic Commerce:
+Each agent is provisioned with a managed wallet, enabling future evolution into self-sustaining economic entities capable of paying for infrastructure and services autonomously under governance rules.
+
+9. Implementation Direction
+
+Initialize repository structure and dependency management (pyproject.toml, environment tooling).
+
+Establish rule-enforcement mechanisms ensuring specification-first workflows.
+
+Define modular skill directories for research, generation, and financial operations.
+
+Integrate monitoring and logging early to ensure traceability from initial development onward.
