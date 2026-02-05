@@ -1,0 +1,10 @@
+review:
+  focus:
+    - spec_alignment
+    - security_vulnerabilities
+    - code_modularity
+
+rules:
+  - no_hardcoded_secrets
+  - follow_agent_rules
+  - reference_specs_before_code
